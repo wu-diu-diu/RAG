@@ -1,11 +1,11 @@
 import argparse
 import os
 import shutil
-from langchain.document_loaders.pdf import PyPDFDirectoryLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from get_embedding_function import get_embedding_function
-from langchain.vectorstores.chroma import Chroma
+from langchain_chroma import Chroma
 
 
 CHROMA_PATH = "chroma"
@@ -50,6 +50,7 @@ def add_to_chroma(chunks: list[Document]):
     )
 
     # Calculate Page IDs.
+    ## 为同属于一页的chunks按照先后顺序给定一个id，并将这个id信息添加到chunks的metadata属性中
     chunks_with_ids = calculate_chunk_ids(chunks)
 
     # Add or Update the documents.
@@ -67,14 +68,14 @@ def add_to_chroma(chunks: list[Document]):
         print(f"👉 Adding new documents: {len(new_chunks)}")
         new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
         db.add_documents(new_chunks, ids=new_chunk_ids)
-        db.persist()
+        # db.persist()
     else:
         print("✅ No new documents to add")
 
 
 def calculate_chunk_ids(chunks):
 
-    # This will create IDs like "data/monopoly.pdf:6:2"
+    # This will create IDs like "data/monopoly.pdf:6:2" 表示monopoly这个pdf的第六页中的第3个chunk
     # Page Source : Page Number : Chunk Index
 
     last_page_id = None
@@ -96,6 +97,7 @@ def calculate_chunk_ids(chunks):
         last_page_id = current_page_id
 
         # Add it to the page meta-data.
+        ## 在metadata字典中添加一个id键
         chunk.metadata["id"] = chunk_id
 
     return chunks

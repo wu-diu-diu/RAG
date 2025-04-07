@@ -1,7 +1,7 @@
 import argparse
-from langchain.vectorstores.chroma import Chroma
+from langchain_chroma import Chroma
 from langchain.prompts import ChatPromptTemplate
-from langchain_community.llms.ollama import Ollama
+from langchain_ollama import OllamaLLM
 
 from get_embedding_function import get_embedding_function
 
@@ -20,10 +20,11 @@ Answer the question based on the above context: {question}
 
 def main():
     # Create CLI.
-    parser = argparse.ArgumentParser()
-    parser.add_argument("query_text", type=str, help="The query text.")
-    args = parser.parse_args()
-    query_text = args.query_text
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("query_text", type=str, help="The query text.")
+    # args = parser.parse_args()
+    # query_text = args.query_text
+    query_text = "what is monopoly?"
     query_rag(query_text)
 
 
@@ -40,7 +41,7 @@ def query_rag(query_text: str):
     prompt = prompt_template.format(context=context_text, question=query_text)
     # print(prompt)
 
-    model = Ollama(model="mistral")
+    model = OllamaLLM(model="mistral")
     response_text = model.invoke(prompt)
 
     sources = [doc.metadata.get("id", None) for doc, _score in results]
