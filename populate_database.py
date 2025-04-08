@@ -1,7 +1,7 @@
 import argparse
 import os
 import shutil
-from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader, UnstructuredMarkdownLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from get_embedding_function import get_embedding_function
@@ -9,8 +9,7 @@ from langchain_chroma import Chroma
 
 
 CHROMA_PATH = "chroma"
-DATA_PATH = "data"
-
+DATA_PATH = "Knowledge_data"
 
 def main():
 
@@ -23,10 +22,23 @@ def main():
         clear_database()
 
     # Create (or update) the data store.
-    documents = load_documents()
+    documents = load_md_files(DATA_PATH)
     chunks = split_documents(documents)
     add_to_chroma(chunks)
 
+def load_md_files(directory_path: str):
+    """使用DirectoryLoader加载目录下所有MD文件内容"""
+    if not os.path.isdir(directory_path):
+        raise NotADirectoryError(f"路径 {directory_path} 不是目录")
+    
+    loader = DirectoryLoader(
+        directory_path,
+        glob="**/*.md",
+        loader_cls=UnstructuredMarkdownLoader,
+        show_progress=True,
+        use_multithreading=True
+    )
+    return loader.load()
 
 def load_documents():
     document_loader = PyPDFDirectoryLoader(DATA_PATH)
@@ -35,8 +47,8 @@ def load_documents():
 
 def split_documents(documents: list[Document]):
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=80,
+        chunk_size=1000,
+        chunk_overlap=150,
         length_function=len,
         is_separator_regex=False,
     )
