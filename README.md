@@ -4,5 +4,5 @@
 - 使用Alibaba的qwen系列模型作为LLM
 
 ## TODO
-- [] 使用langchain搭建agent，使能够实现更多功能
-- [] 借助开源的前端界面部署在本地
+- [ ] 使用langchain搭建agent，使能够实现更多功能
+- [ ] 借助开源的前端界面部署在本地
