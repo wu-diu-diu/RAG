@@ -22,28 +22,33 @@ def main():
         clear_database()
 
     # Create (or update) the data store.
-    documents = load_md_files(DATA_PATH)
+    documents = load_documents(DATA_PATH)
     chunks = split_documents(documents)
     add_to_chroma(chunks)
 
-def load_md_files(directory_path: str):
-    """使用DirectoryLoader加载目录下所有MD文件内容"""
-    if not os.path.isdir(directory_path):
-        raise NotADirectoryError(f"路径 {directory_path} 不是目录")
+def load_documents(DATA_PATH):
+    """加载所有文档，包括PDF和MD文件"""
+    documents = []
     
-    loader = DirectoryLoader(
-        directory_path,
-        glob="**/*.md",
-        loader_cls=UnstructuredMarkdownLoader,
-        show_progress=True,
-        use_multithreading=True
-    )
-    return loader.load()
+    if os.path.isdir(DATA_PATH):
+        # 加载PDF文件
+        pdf_loader = PyPDFDirectoryLoader(DATA_PATH)
+        documents.extend(pdf_loader.load())
+        print(f"📚 Loaded {len(documents)} PDF documents")
 
-def load_documents():
-    document_loader = PyPDFDirectoryLoader(DATA_PATH)
-    return document_loader.load()
-
+        md_loader = DirectoryLoader(
+            DATA_PATH,
+            glob="**/*.md",
+            loader_cls=UnstructuredMarkdownLoader,
+            show_progress=True
+        )
+        # 加载MD文件
+        md_docs = md_loader.load()
+        documents.extend(md_docs)
+        print(f"📝 Loaded {len(md_docs)} Markdown documents")
+    else:
+        raise NotADirectoryError(f"路径 {DATA_PATH} 不是目录")
+    return documents
 
 def split_documents(documents: list[Document]):
     text_splitter = RecursiveCharacterTextSplitter(
@@ -87,8 +92,11 @@ def add_to_chroma(chunks: list[Document]):
 
 def calculate_chunk_ids(chunks):
 
-    # This will create IDs like "data/monopoly.pdf:6:2" 表示monopoly这个pdf的第六页中的第3个chunk
-    # Page Source : Page Number : Chunk Index
+    """
+    为chunks生成唯一ID
+    对于PDF文件：source:page:chunk_index
+    对于MD文件：source:chunk_index
+    """
 
     last_page_id = None
     current_chunk_index = 0
@@ -96,7 +104,14 @@ def calculate_chunk_ids(chunks):
     for chunk in chunks:
         source = chunk.metadata.get("source")
         page = chunk.metadata.get("page")
-        current_page_id = f"{source}:{page}"
+        
+        # 根据是否有page信息生成不同的ID格式
+        if page is not None:
+            current_page_id = f"{source}:{page}"
+        else:
+            current_page_id = source
+        
+        # 计算chunk ID
 
         # If the page ID is the same as the last one, increment the index.
         if current_page_id == last_page_id:
